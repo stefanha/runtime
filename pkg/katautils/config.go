@@ -105,6 +105,7 @@ type hypervisor struct {
 	DefaultBridges          uint32 `toml:"default_bridges"`
 	Msize9p                 uint32 `toml:"msize_9p"`
 	DisableBlockDeviceUse   bool   `toml:"disable_block_device_use"`
+	SharedFS                string `toml:"shared_fs"`
 	MemPrealloc             bool   `toml:"enable_mem_prealloc"`
 	HugePages               bool   `toml:"enable_hugepages"`
 	Swap                    bool   `toml:"enable_swap"`
@@ -324,6 +325,18 @@ func (h hypervisor) blockDeviceDriver() (string, error) {
 	return "", fmt.Errorf("Invalid hypervisor block storage driver %v specified (supported drivers: %v)", h.BlockDeviceDriver, supportedBlockDrivers)
 }
 
+func (h hypervisor) sharedFS() (string, error) {
+	supportedSharedFS := []string{config.Virtio9P, config.VirtioFS}
+
+	for _, fs := range supportedSharedFS {
+		if fs == h.SharedFS {
+			return h.SharedFS, nil
+		}
+	}
+
+	return "", fmt.Errorf("Invalid hypervisor shared file system %v specified (supported file systems: %v)", h.SharedFS, supportedSharedFS)
+}
+
 func (h hypervisor) msize9p() uint32 {
 	if h.Msize9p == 0 {
 		return defaultMsize9p
@@ -503,6 +516,11 @@ func newQemuHypervisorConfig(h hypervisor) (vc.HypervisorConfig, error) {
 		return vc.HypervisorConfig{}, err
 	}
 
+	sharedFS, err := h.sharedFS()
+	if err != nil {
+		return vc.HypervisorConfig{}, err
+	}
+
 	useVSock := false
 	if h.useVSock() {
 		if utils.SupportsVsocks() {
@@ -530,6 +548,7 @@ func newQemuHypervisorConfig(h hypervisor) (vc.HypervisorConfig, error) {
 		EntropySource:           h.GetEntropySource(),
 		DefaultBridges:          h.defaultBridges(),
 		DisableBlockDeviceUse:   h.DisableBlockDeviceUse,
+		SharedFS:                sharedFS,
 		MemPrealloc:             h.MemPrealloc,
 		HugePages:               h.HugePages,
 		Mlock:                   !h.Swap,
