@@ -240,6 +240,9 @@ type HypervisorConfig struct {
 	//   - virtio-fs
 	SharedFS string
 
+	// VirtioFSDaemon is the virtio-fs vhost-user daemon path
+	VirtioFSDaemon string
+
 	// EnableIOThreads enables IO to be processed in a separate thread.
 	// Supported currently for virtio-scsi driver.
 	EnableIOThreads bool
