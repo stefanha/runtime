@@ -44,6 +44,7 @@ const defaultGuestHookPath string = ""
 
 var (
 	hypervisorDebug = false
+	enableVirtioFS  = false
 	proxyDebug      = false
 	runtimeDebug    = false
 	runtimeTrace    = false
@@ -82,6 +83,11 @@ func createConfig(configPath string, fileData string) error {
 }
 
 func makeRuntimeConfigFileData(hypervisor, hypervisorPath, kernelPath, imagePath, kernelParams, machineType, shimPath, proxyPath, netmonPath, logPath string, disableBlock bool, blockDeviceDriver string, enableIOThreads bool, hotplugVFIOOnRootBus, disableNewNetNs bool) string {
+	sharedFS := "virtio-9p"
+	if enableVirtioFS {
+		sharedFS = "virtio-fs"
+	}
+
 	return `
 	# Runtime configuration file
 
@@ -101,6 +107,8 @@ func makeRuntimeConfigFileData(hypervisor, hypervisorPath, kernelPath, imagePath
 	msize_9p = ` + strconv.FormatUint(uint64(defaultMsize9p), 10) + `
 	enable_debug = ` + strconv.FormatBool(hypervisorDebug) + `
 	guest_hook_path = "` + defaultGuestHookPath + `"
+	shared_fs = "` + sharedFS + `"
+	virtio_fs_daemon = "/path/to/virtiofsd"
 
 	[proxy.kata]
 	enable_debug = ` + strconv.FormatBool(proxyDebug) + `
@@ -338,6 +346,7 @@ func getExpectedHypervisor(config oci.RuntimeConfig) HypervisorInfo {
 		MemorySlots:       config.HypervisorConfig.MemSlots,
 		Debug:             config.HypervisorConfig.Debug,
 		EntropySource:     config.HypervisorConfig.EntropySource,
+		SharedFS:          config.HypervisorConfig.SharedFS,
 	}
 }
 
@@ -515,6 +524,7 @@ func TestEnvGetEnvInfo(t *testing.T) {
 	// options are tested.
 	for _, toggle := range []bool{false, true} {
 		hypervisorDebug = toggle
+		enableVirtioFS = toggle
 		proxyDebug = toggle
 		runtimeDebug = toggle
 		runtimeTrace = toggle
